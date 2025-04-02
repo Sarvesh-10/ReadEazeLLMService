@@ -10,8 +10,13 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import AIMessage
 
 from langchain_core.messages import SystemMessage
-from services.memory import get_chat_memory
-from utils import format_message
+from .memory import get_chat_memory
+from ..utils import format_message
+
+
+## set path to import memoryManager
+
+from .memoryManager import MemoryManager
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_API_KEY = "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"
@@ -21,19 +26,27 @@ HEADERS = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "applicati
 
 
 async def streamLLMResponses(user_id:str,book_id:str,systemMessage: str, userMessage: str):
-    memory = get_chat_memory(user_id=user_id, book_id=book_id)
-    previous_messages = [format_message(msg) for msg in memory.get_messages()]
-    memory.save_message(userMessage, "user")
+    memory = MemoryManager(user_id=user_id, book_id=book_id)
+    redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
+    redismemory.save_message(userMessage, "user")
+    previous_messages = memory.get_memory()
+    print(f"Previous messages: {previous_messages}")
+    session_messages = previous_messages.get(f"session:{user_id}:book:{book_id}", [])
+    formatted_messages = []
+    for msg in session_messages:
+        role = "assistant" if isinstance(msg, SystemMessage) else "user"
+        content = msg.content
+        formatted_messages.append({"role": role, "content": content})
     full_message = []
+    formatted_messages.extend([
+    {"role": "system", "content": systemMessage},
+    {"role": "user", "content": userMessage}
+])
     async def stream_response():
         print("Sending request to Groq...")
         payload = {
             "model": "llama3-8b-8192",
-            "messages": [
-                *previous_messages,
-                {"role": "system", "content": systemMessage},
-                {"role": "user", "content": userMessage},
-            ],
+            "messages": formatted_messages,
             "stream": True
         }
 
@@ -75,6 +88,7 @@ async def streamLLMResponses(user_id:str,book_id:str,systemMessage: str, userMes
             print(f"Error during streaming: {e}")
         if full_message:
             full_text = "".join(full_message)
-            memory.save_message(full_text, "AI")
+            redismemory.save_message(full_text, "AI")
+            memory.add_message(userMessage, full_text)
 
     return StreamingResponse(stream_response(), media_type="text/event-stream")

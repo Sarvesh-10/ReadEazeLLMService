@@ -4,7 +4,7 @@ from google.genai import types
 from io import BytesIO
 from PIL import Image
 from fastapi.responses import StreamingResponse
-from services.image_generator import ImageGenerator
+from .image_generator import ImageGenerator
 
 class GeminiGenerator(ImageGenerator):
     _instance = None

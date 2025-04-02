@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from services.memory import ChatMemory, get_chat_memory
-from services.llm import streamLLMResponses
-from auth import get_current_user
-from utils import format_message, get_user_id_from_request
+from ..services.memory import ChatMemory, get_chat_memory
+from ..services.llm import streamLLMResponses
+from ..auth import get_current_user
+from ..utils import format_message, get_user_id_from_request
 from fastapi import APIRouter, HTTPException
+
 
 
 router = APIRouter(prefix='/api/chat',tags=['chat'])

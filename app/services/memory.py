@@ -1,5 +1,5 @@
 from langchain_community.chat_message_histories import RedisChatMessageHistory
-from config import redis_client
+from ..config import redis_client
 
 memory_cache = {}
 

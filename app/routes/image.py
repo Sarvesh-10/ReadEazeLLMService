@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter,HTTPException,Request
-from services.generator_factory import ImageGeneratorFactory
+from ..services.generator_factory import ImageGeneratorFactory
 from pydantic import BaseModel
 
 class ImageRequest(BaseModel):
