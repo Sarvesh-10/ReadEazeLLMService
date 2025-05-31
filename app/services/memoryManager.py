@@ -1,5 +1,6 @@
 from langchain.memory import ConversationSummaryMemory
 from langchain_groq import ChatGroq
+import os
 
 class MemoryManager:
     _instances = {}
@@ -17,8 +18,8 @@ class MemoryManager:
         self.book_id = book_id
         self.threshold = threshold
         self.llm = ChatGroq(
-            model="llama3-8b-8192",
-            api_key="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",
+            model=os.getenv("GROQ_CHAT_MODEL"),
+            api_key=os.getenv("GROQ_API_KEY"),
         )
 
         self.memory = ConversationSummaryMemory(
