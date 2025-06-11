@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 
 
-router = APIRouter(prefix='/api/chat',tags=['chat'])
+router = APIRouter(prefix='/chat',tags=['chat'])
 
 @router.post('/{book_id}')
 async def chat_with_book(book_id:str,request:Request):

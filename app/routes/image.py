@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class ImageRequest(BaseModel):
     prompt: str
     model: str = "gemini"
-router = APIRouter(prefix='/api/image',tags=['image'])
+router = APIRouter(prefix='/image',tags=['image'])
 @router.post("/generate-image")
 async def generate_image(request: Request):
     try:
