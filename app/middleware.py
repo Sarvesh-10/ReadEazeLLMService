@@ -9,7 +9,10 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
         logging.info(f"Processing request: {request.method} {request.url.path}")
-        if request.url.path.startswith('/api'):
+        # Always check JWT (unless you want to skip auth for public routes like / or /test-cookie)
+        protected_paths = ["/chat", "/image", "/something-else"]
+
+        if any(request.url.path.startswith(p) for p in protected_paths):
             logging.info("Request is for API endpoint, checking JWT token...")
             # Try reading the token from the cookie
             print(request.cookies.items())
