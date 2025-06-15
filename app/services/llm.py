@@ -12,18 +12,12 @@ from langchain_core.messages import AIMessage
 from langchain_core.messages import SystemMessage
 from .memory import get_chat_memory
 from ..utils import format_message
-
-
-## set path to import memoryManager
-
+from dotenv import load_dotenv
 from .memoryManager import MemoryManager
-
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_API_KEY = "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"
+# load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_URL = os.getenv("GROQ_API_URL")
 HEADERS = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json","Accept": "text/event-stream"}
-
-
-
 
 async def streamLLMResponses(user_id:str,book_id:str,systemMessage: str, userMessage: str):
     memory = MemoryManager(user_id=user_id, book_id=book_id)
