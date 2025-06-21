@@ -19,23 +19,26 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_URL = os.getenv("GROQ_API_URL")
 HEADERS = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json","Accept": "text/event-stream"}
 
-async def streamLLMResponses(user_id:str,book_id:str,systemMessage: str, userMessage: str):
+async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, userMessage: str):
     memory = MemoryManager(user_id=user_id, book_id=book_id)
     redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
     redismemory.save_message(userMessage, "user")
-    previous_messages = memory.get_memory()
-    print(f"Previous messages: {previous_messages}")
-    session_messages = previous_messages.get(f"session:{user_id}:book:{book_id}", [])
-    formatted_messages = []
-    for msg in session_messages:
-        role = "assistant" if isinstance(msg, SystemMessage) else "user"
-        content = msg.content
-        formatted_messages.append({"role": role, "content": content})
-    full_message = []
-    formatted_messages.extend([
-    {"role": "system", "content": systemMessage},
-    {"role": "user", "content": userMessage}
-])
+
+    memory_vars = memory.get_memory()
+    history_str = memory_vars.get("history", "")
+
+    formatted_messages = [{"role": "system", "content": systemMessage}]
+
+    if history_str:
+        formatted_messages.append({"role": "system", "content": history_str})  # ✅ Corrected role
+
+    formatted_messages.append({"role": "user", "content": userMessage})
+
+    full_message = []  # ✅ Moved to outer scope
+
+    print(f"Previous memory history: {history_str}")
+    print(f"Formatted messages: {formatted_messages}")
+
     async def stream_response():
         print("Sending request to Groq...")
         payload = {
@@ -71,8 +74,7 @@ async def streamLLMResponses(user_id:str,book_id:str,systemMessage: str, userMes
                                 if content:
                                     print(f"Streaming content: {content}")
                                     full_message.append(content)
-                                    yield f"{content}"
-                                    # await asyncio.sleep(0)
+                                    yield content  # ✅ no need for f-string
 
                         except json.JSONDecodeError as e:
                             print(f"Malformed JSON: {line} - Error: {e}")
@@ -80,6 +82,7 @@ async def streamLLMResponses(user_id:str,book_id:str,systemMessage: str, userMes
 
         except Exception as e:
             print(f"Error during streaming: {e}")
+
         if full_message:
             full_text = "".join(full_message)
             redismemory.save_message(full_text, "AI")

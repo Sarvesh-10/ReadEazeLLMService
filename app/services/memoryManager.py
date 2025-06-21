@@ -34,24 +34,7 @@ class MemoryManager:
     def add_message(self, message: str, assistant_response: str):
         self.memory.save_context(
     {"input":message},
-    {"output":assistant_response}
-)
-
-
-        if len(self.memory.chat_memory.messages) >= self.threshold:
-            self.summarize_memory()
-
-    def summarize_memory(self):
-        summary = self.memory.load_memory_variables({})
-        messages = summary.get("messages", [])
-
-        summarized_message = " ".join([msg.get("content", "") for msg in messages])
-
-        self.memory.clear()
-        self.memory.save_context(
-            {"input": {"role": "user", "content": summarized_message}},
-            {"output": {"role": "assistant", "content": summarized_message}}
-        )
+    {"output":assistant_response})
 
     def get_memory(self):
         return self.memory.load_memory_variables({})
