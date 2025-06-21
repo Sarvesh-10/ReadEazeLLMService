@@ -25,7 +25,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     redismemory.save_message(userMessage, "user")
 
     memory_vars = memory.get_memory()
-    history_str = memory_vars.get("history", "")
+    history_str = memory_vars.get("history", "context was not retrieved")
 
     formatted_messages = [{"role": "system", "content": systemMessage}]
 
@@ -84,8 +84,9 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
             print(f"Error during streaming: {e}")
 
         if full_message:
+            print("Streaming complete, saving full message.")
             full_text = "".join(full_message)
             redismemory.save_message(full_text, "AI")
             memory.add_message(userMessage, full_text)
-
+            print(f"Full message saved: {full_text}")
     return StreamingResponse(stream_response(), media_type="text/event-stream")

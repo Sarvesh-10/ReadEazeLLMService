@@ -32,6 +32,7 @@ class MemoryManager:
         )
 
     def add_message(self, message: str, assistant_response: str):
+        print("add message called")
         self.memory.save_context(
     {"input":message},
     {"output":assistant_response})
