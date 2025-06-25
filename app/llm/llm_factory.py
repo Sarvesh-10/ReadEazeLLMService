@@ -20,8 +20,7 @@ class LLMFactory:
             llm = ChatGroq(
                 api_key=os.getenv("GROQ_API_KEY"),
                 model=model.value,
-                streaming=True,
-                callbacks=callbacks
+                streaming=False,
             )
         else:
             raise ValueError(f"Unsupported provider: {provider}")

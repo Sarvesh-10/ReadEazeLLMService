@@ -20,11 +20,10 @@ async def streamLLMResponses(
     model: enums.ModelName = enums.ModelName.LLAMA3,
     provider: enums.ModelProvider = enums.ModelProvider.GROQ
 ):
-    queue = Queue()
-    handler = StreamingHandler(queue)
+    
 
     # Create LLM with streaming handler
-    llm = LLMFactory.get_llm(model=model, provider=provider, callbacks=[handler])
+    llm = LLMFactory.get_llm(model=model, provider=provider)
 
     # Get memory for session
     memory = get_summary_memory(user_id, book_id, llm=llm)
@@ -39,4 +38,7 @@ async def streamLLMResponses(
     # Create the LLMChain
     chain = LLMChain(llm=llm, prompt=prompt, memory=memory)
     response = await chain.ainvoke({"input": userMessage})
-    return {"response": response.content}
+    print(f"Response from LLM: {response.content}")
+    logging.info(f"Response from LLM: {response}")
+
+    return {"response": response}
