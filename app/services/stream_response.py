@@ -9,7 +9,7 @@ from ..configs.handlers import StreamingHandler
 import app.llm.model_enums as enums
 from .memoryManager import get_summary_memory
 
-async def streamLLMResponses(
+def streamLLMResponses(
     user_id: str,
     book_id: str,
     userMessage: str,
@@ -31,11 +31,14 @@ async def streamLLMResponses(
     chain = get_conversation_chain(
         user_id=user_id,
         book_id=book_id,
-        llm = llm
+        llm = llm,
+        memory=memory
     )
 
     # Save user input
-    memory.chat_memory.add_user_message(userMessage)
+    if systemMessage and not memory.chat_memory.messages:
+        memory.chat_memory.add_message(SystemMessage(content=systemMessage))
+
 
     async def token_stream():
         try:
