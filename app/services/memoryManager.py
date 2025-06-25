@@ -17,7 +17,7 @@ def get_summary_memory(user_id: str, book_id: str,llm=None):
             llm=llm,
             memory_key="history",
             return_messages=True,
-            chat_memory=chatMemory    
+            chat_memory=chatMemory.history,    
         )
         _memory_cache[session_key] = memory
         print(f"[MemoryManager] Created memory for session: {session_key}")
