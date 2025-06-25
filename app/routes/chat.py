@@ -20,7 +20,7 @@ async def chat_with_book(book_id:str,request:Request):
     if not user_message:
         return {"error": "No message provided"}
     system_message = data.get("systemMessage")
-    return streamLLMResponses(user_id=user_id,book_id=book_id,systemMessage=system_message,userMessage=user_message)
+    return await streamLLMResponses(user_id=user_id,book_id=book_id,systemMessage=system_message,userMessage=user_message)
 @router.options('/{book_id}')
 def prefligh_handler(book_id:str,req:Request):
     print("Got book id",book_id)
