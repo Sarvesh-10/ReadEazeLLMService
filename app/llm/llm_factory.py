@@ -8,7 +8,7 @@ _llm_cache = {}
 
 class LLMFactory:
     @staticmethod
-    def get_llm(model: ModelName = ModelName.LLAMA3, provider: ModelProvider = ModelProvider.GROQ):
+    def get_llm(model: ModelName = ModelName.LLAMA3, provider: ModelProvider = ModelProvider.GROQ,callbacks=None):
         key = f"{provider.value}:{model.value}"
 
         if key in _llm_cache:
@@ -20,7 +20,8 @@ class LLMFactory:
             llm = ChatGroq(
                 api_key=os.getenv("GROQ_API_KEY"),
                 model=model.value,
-                streaming=True
+                streaming=True,
+                callbacks=callbacks
             )
         else:
             raise ValueError(f"Unsupported provider: {provider}")
