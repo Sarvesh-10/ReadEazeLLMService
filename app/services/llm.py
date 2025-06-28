@@ -59,7 +59,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         messagesToSummarize.append( HumanMessage(content="Here are the next few turns of the conversation:"))
         messagesToSummarize.extend(lastSixConvos)
         summary = await summaryLLM.ainvoke(messagesToSummarize)
-        redismemory.history.redis_client.set(f"summary:{user_id}:{book_id}", summary, ex=7200)
+        redismemory.history.redis_client.set(f"summary:{user_id}:{book_id}", summary.content.strip(), ex=7200)
           # Store summary for 1 hour
 
 
