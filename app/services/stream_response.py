@@ -41,4 +41,4 @@ async def streamLLMResponses(
     print(f"Response from LLM: {response}")
     logging.info(f"Response from LLM: {response}")
 
-    return {"response": response['text']}
+    return {"response": response}
