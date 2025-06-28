@@ -6,28 +6,28 @@ import app.llm.model_enums as enums
 async def streamLLMResponses(
     user_id: str,
     book_id: str,
-    userMessage: str,
-    systemMessage: str,
+    user_message: str,
+    system_message: str,
     model: enums.ModelName = enums.ModelName.LLAMA3,
     provider: enums.ModelProvider = enums.ModelProvider.GROQ
 ):
     # 1. Redis store for full conversation history (UI purposes)
     redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
-    redismemory.save_message(userMessage, "user")
+    redismemory.save_message(user_message, "user")
 
     # 2. LangChain memory-aware conversation chain
     chain = get_conversation_chain(user_id, book_id, model, provider)
 
     # 3. Add system message manually if it's the first time
     # This depends on your memory logic (optional)
-    if systemMessage:
-        chain.memory.chat_memory.messages.insert(0, SystemMessage(content=systemMessage))
+    if system_message:
+        chain.memory.chat_memory.messages.insert(0, SystemMessage(content=system_message))
 
     full_output = []
 
     async def stream_response():
         try:
-            async for chunk in chain.astream({"input": userMessage}):
+            async for chunk in chain.astream({"input": user_message}):
                 if hasattr(chunk, "content") and chunk.content:
                     yield chunk.content
                     full_output.append(chunk.content)
