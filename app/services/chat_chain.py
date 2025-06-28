@@ -7,15 +7,18 @@ from .memoryManager import get_summary_memory
 # Cache to store chains per user-book session
 _chain_cache = {}
 
-def get_conversation_chain(user_id: str, book_id: str, llm):
+def get_conversation_chain(user_id: str, book_id: str, model: ModelName = ModelName.LLAMA3, provider: ModelProvider = ModelProvider.GROQ):
     session_key = f"{user_id}:{book_id}"
     
     if session_key not in _chain_cache:
-        memory = get_summary_memory(user_id, book_id,llm=llm)
+        chatMemory = get_chat_memory(user_id, book_id, model, provider)
+        memory = get_summary_memory(user_id, book_id, model, provider)
         chain = ConversationChain(
-            llm=llm,  # LLM already available from memory
+            llm=memory.llm,  # LLM already available from memory
             memory=memory,
             verbose=False,
+            chat_memory=chatMemory
+
         )
         _chain_cache[session_key] = chain
         print(f"[ChatChain] Created new chain for session: {session_key}")
