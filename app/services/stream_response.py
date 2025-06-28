@@ -10,7 +10,6 @@ from ..configs.handlers import StreamingHandler
 import app.llm.model_enums as enums
 from langchain.chains import LLMChain
 from .memoryManager import get_summary_memory
-import logging
 
 async def streamLLMResponses(
     user_id: str,
@@ -38,5 +37,37 @@ async def streamLLMResponses(
 
     # Create the LLMChain
     chain = LLMChain(llm=llm, prompt=prompt, memory=memory)
-    response = await chain.ainvoke({"input": userMessage})
-    return {"response": response.content}
+
+    # Stream consumer logic
+    async def consume_stream(aiterator, queue):
+        try:
+            async for _ in aiterator:
+                pass  # Tokens go to StreamingHandler, which puts them in queue
+        except Exception as e:
+            await queue.put(f"[ERROR] {str(e)}")
+        finally:
+            await queue.put("[END]")
+
+    # Streaming response generator
+    async def token_stream():
+        # Start streaming the LLM output in the background
+        producer = asyncio.create_task(consume_stream(chain.astream({"input": userMessage}), queue))
+        
+
+        # Consume queue and yield to client
+        while True:
+            token = await queue.get()
+            if token == "[END]":
+                break
+            if token.startswith("[ERROR]"):
+                print(token)
+                yield f"data: {token}\n\n"
+                break
+            yield f"data: {token}\n\n"
+            await asyncio.sleep(0)  # Yield to event loop
+
+    return StreamingResponse(token_stream(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "Content-Type": "text/event-stream",
+        "X-Accel-Buffering": "no"
+    })
