@@ -60,7 +60,7 @@ async def streamLLMResponses(
     response = await chain.ainvoke({"input": userMessage})
     print(f"Response from LLM: {response}")
     logging.info(f"Response from LLM: {response}")
-    history = memory.load_memory_variables({})
+    history = await memory.load_memory_variables({})
     print(f"Memory history after response: {history}")
     logging.info(f"Memory history after response: {history}")
 
