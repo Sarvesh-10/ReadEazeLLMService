@@ -5,7 +5,6 @@ from asyncio import Queue
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from app.llm.llm_factory import LLMFactory
 from app.services.chat_chain import get_conversation_chain
-from app.services.memory import get_chat_memory
 from ..configs.handlers import StreamingHandler
 import app.llm.model_enums as enums
 from langchain.chains import LLMChain
@@ -60,8 +59,5 @@ async def streamLLMResponses(
     response = await chain.ainvoke({"input": userMessage})
     print(f"Response from LLM: {response}")
     logging.info(f"Response from LLM: {response}")
-    history = await memory.load_memory_variables({})
-    print(f"Memory history after response: {history}")
-    logging.info(f"Memory history after response: {history}")
 
     return {"response": response['text']}
