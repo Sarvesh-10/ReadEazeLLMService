@@ -6,7 +6,7 @@ from .memoryManager import get_summary_memory
 # Cache to store chains per user-book session
 _chain_cache = {}
 
-def get_conversation_chain(user_id: str, book_id: str, llm,memory,prompt):
+def get_conversation_chain(user_id: str, book_id: str, llm,memory):
     session_key = f"{user_id}:{book_id}"
     
     if session_key not in _chain_cache:
@@ -14,7 +14,6 @@ def get_conversation_chain(user_id: str, book_id: str, llm,memory,prompt):
             llm=llm,  # LLM already available from memory
             memory=memory,
             verbose=False,
-            prompt=prompt,  # Use default prompt for ConversationChain
         )
         _chain_cache[session_key] = chain
         print(f"[ChatChain] Created new chain for session: {session_key}")
