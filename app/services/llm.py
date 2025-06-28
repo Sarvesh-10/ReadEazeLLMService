@@ -1,5 +1,6 @@
 import json
-import os 
+import os
+from typing import Optional 
 import httpx
 import asyncio
 from fastapi.responses import StreamingResponse
@@ -25,6 +26,42 @@ summaryLLM = ChatGroq(
     max_tokens=4000,
     streaming=False
 )
+async def summarize_if_needed(user_id, book_id, allMessages, system_prompt: str,redismemory) -> Optional[str]:
+    if not shouldSummarize(allMessages):
+        return None
+
+    summarySystemMessage = (
+    "You are a memory compression assistant. Your job is to maintain a running summary of a conversation.\n\n"
+    "- You will be given a previous summary (if any).\n"
+    "- You will also be given the next few turns of conversation.\n"
+    "- Your task is to return an updated summary that integrates the new information with the previous summary.\n"
+    "- Be concise and preserve key context. Respond only with the updated summary. No explanations, no headings."
+)   
+
+    lastSix = allMessages[-6:]
+    summary_messages = [SystemMessage(content=summarySystemMessage)]
+    redis_key = f"summary:{user_id}:{book_id}"
+    
+    previous = redismemory.history.redis_client.get(redis_key)
+    if previous:
+        summary_messages.append(HumanMessage(content=f"Previous summary:\n{previous.decode('utf-8')}"))
+
+    summary_messages.append(HumanMessage(content="Here are the next few turns of the conversation:"))
+    summary_messages.extend(lastSix)
+
+    summary = await summaryLLM.ainvoke(summary_messages)
+    redismemory.history.redis_client.set(redis_key, summary.content.strip(), ex=7200)
+
+    return summary.content.strip()
+
+def buildConversationContext(systemMessage: str, messages: list):
+    formattedMessages = []
+    if systemMessage:
+        formattedMessages.append(SystemMessage(content=systemMessage))
+      # Get last maxPairs of user-AI pairs
+    formattedMessages.extend(messages)
+
+    return format_message(formattedMessages)
 def shouldSummarize(messages):
     """
     Determines if the conversation should be summarized based on the number of messages.
@@ -35,9 +72,19 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
     redismemory.save_message(userMessage, "user")
     allMessages = redismemory.get_messages()
+    formatted_messages = []
+    if(len(allMessages) <6):
+        formatted_messages = buildConversationContext(systemMessage, userMessage, allMessages)
+    
+    if redismemory.history.redis_client.exists(f"summary:{user_id}:{book_id}"):
+        previous_summary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
+        if previous_summary:
+            previous_summary = previous_summary.decode('utf-8')
+            systemMessage = f"{systemMessage}\n\nHere is the previous summary of the conversation:\n{previous_summary.strip()}"
+            print(f"Using previous summary: {previous_summary.strip()}")
+
     print(f"Messages in memory: {allMessages}")
     # Format the system and user messages
-
     if(shouldSummarize(allMessages)):
         print("Summarizing conversation...")
         lastSixConvos = allMessages[-6:]
@@ -64,10 +111,8 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
           # Store summary for 1 hour
 
 
-    formatted_messages = [{"role": "system", "content": systemMessage}]
+        formatted_messages = [{"role": "user", "content": userMessage}]
 
-  
-    formatted_messages.append({"role": "user", "content": userMessage})
 
     full_message = []  # ✅ Moved to outer scope
     print(f"Formatted messages: {formatted_messages}")
