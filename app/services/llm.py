@@ -31,17 +31,24 @@ def buildConversationContext(messages: list):
     formattedMessages = []
       # Get last maxPairs of user-AI pairs
     formattedMessages.extend(messages)
-
-    return format_message(formattedMessages)
+    if len(messages ==0):
+        print("No messages to format, returning empty list.")
+        return formattedMessages
+    formattedMessages = [format_message(msg) for msg in formattedMessages]
+    print(f"Formatted messages: {formattedMessages}")
+    return formattedMessages
 def shouldSummarize(messages):
     """
     Determines if the conversation should be summarized based on the number of messages.
     """
+    print("Checking if summarization is needed...")
+    
+    print(f"Total messages: {len(messages)}")
+    print("Checking if len(messages) % 6 == 0",len(messages) % 6 == 0)
     return len(messages)!=0 and len(messages)%6 == 0 # Example threshold, adjust as needed
 async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, userMessage: str):
     memory = MemoryManager(user_id=user_id, book_id=book_id)
     redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
-    redismemory.save_message(userMessage, "user")
     allMessages = redismemory.get_messages()
     formatted_messages = []
     if(len(allMessages) <6):
@@ -138,5 +145,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
             print("Streaming complete, saving full message.")
             full_text = "".join(full_message)
             redismemory.save_message(full_text, "AI")
+            redismemory.save_message(userMessage, "user")
+
             print(f"Full message saved: {full_text}")
     return StreamingResponse(stream_response(), media_type="text/event-stream")
