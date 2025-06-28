@@ -1,11 +1,8 @@
 from fastapi.responses import StreamingResponse
-from langchain.chains import ConversationChain
-from langchain_core.messages import SystemMessage
-from asyncio import Queue
-from ..configs.handlers import StreamingHandler
+from langchain_core.messages import HumanMessage, SystemMessage
+from .memory import get_chat_memory
+from .chat_chain import get_conversation_chain
 import app.llm.model_enums as enums
-from .memoryManager import get_summary_memory
-
 async def streamLLMResponses(
     user_id: str,
     book_id: str,
@@ -14,38 +11,32 @@ async def streamLLMResponses(
     model: enums.ModelName = enums.ModelName.LLAMA3,
     provider: enums.ModelProvider = enums.ModelProvider.GROQ
 ):
-    queue = Queue()
-    handler = StreamingHandler(queue)
+    # 1. Redis store for full conversation history (UI purposes)
+    redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
+    redismemory.save_message(userMessage, "user")
 
-    # Create memory + attach handler-enabled LLM
-    memory = get_summary_memory(user_id, book_id, model, provider, callbacks=[handler])
+    # 2. LangChain memory-aware conversation chain
+    chain = get_conversation_chain(user_id, book_id, model, provider)
 
-    # Optionally add system message at the start
-    if systemMessage and not memory.chat_memory.messages:
-        memory.chat_memory.messages.insert(0, SystemMessage(content=systemMessage))
+    # 3. Add system message manually if it's the first time
+    # This depends on your memory logic (optional)
+    if systemMessage:
+        chain.memory.chat_memory.messages.insert(0, SystemMessage(content=systemMessage))
 
-    # Chain
-    chain = ConversationChain(
-        llm=memory.llm,
-        memory=memory,
-        verbose=False
-    )
+    full_output = []
 
-    # Save user input
-    memory.chat_memory.add_user_message(userMessage)
+    async def stream_response():
+        try:
+            async for chunk in chain.astream({"input": userMessage}):
+                if hasattr(chunk, "content") and chunk.content:
+                    yield chunk.content
+                    full_output.append(chunk.content)
+        except Exception as e:
+            print(f"[StreamError] {e}")
 
-    async def token_stream():
-        # Fire off the async LLM stream
-        _ = await chain.ainvoke({"input": userMessage})
+        full_text = "".join(full_output)
+        if full_text:
+            redismemory.save_message(full_text, "AI")
+            print(f"[Saved] Full AI message: {full_text}")
 
-        # Yield tokens as they come
-        while True:
-            token = await queue.get()
-            if token == "[END]":
-                break
-            if token.startswith("[ERROR]"):
-                print(token)
-                break
-            yield token
-
-    return StreamingResponse(token_stream(), media_type="text/event-stream")
+    return StreamingResponse(stream_response(), media_type="text/event-stream")
