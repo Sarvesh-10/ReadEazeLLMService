@@ -74,7 +74,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     allMessages = redismemory.get_messages()
     formatted_messages = []
     if(len(allMessages) <6):
-        formatted_messages = buildConversationContext(systemMessage, userMessage, allMessages)
+        formatted_messages = buildConversationContext(systemMessage,allMessages)
     
     if redismemory.history.redis_client.exists(f"summary:{user_id}:{book_id}"):
         previous_summary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
