@@ -9,7 +9,7 @@ memory_cache = {}
 class ChatMemory: 
     def __init__(self,user_id:str,book_id:str):
         self.session_key = f"session:{user_id}:book:{book_id}"
-        self.history = RedisChatMessageHistory(session_id=self.session_key,url=os.getenv("REDIS_URL"),ttl=7200)
+        self.history = RedisChatMessageHistory(session_id=self.session_key,url=os.getenv("REDIS_URL"))
 
     def save_message(self,message:str,role:str):
         if role == "user":

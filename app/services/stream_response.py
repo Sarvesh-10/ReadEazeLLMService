@@ -63,5 +63,5 @@ async def streamLLMResponses(
     history = memory.load_memory_variables({})
     print(f"Memory history after response: {history}")
     logging.info(f"Memory history after response: {history}")
-    await memory.save_context({"input": userMessage}, {"response": response['text']})
+
     return {"response": response['text']}
