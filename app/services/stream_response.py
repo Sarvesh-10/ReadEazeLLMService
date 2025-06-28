@@ -29,20 +29,14 @@ async def streamLLMResponses(
     memory = get_summary_memory(user_id, book_id, llm=llm)
 
     # Define custom prompt with system message (not stored in memory)
-    prompt = ChatPromptTemplate.from_template(
-    """
-    {system_message}
-
-    Previous conversation summary:
-    {history}
-
-    User: {input}
-    """
-)
-
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=systemMessage),  # This affects LLM behavior but isn't saved
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}")
+    ])
 
     # Create the LLMChain
-    chain = LLMChain(llm=llm, prompt=prompt, memory=memory, verbose=True)
+    chain = LLMChain(llm=llm, prompt=prompt, memory=memory)
     response = await chain.ainvoke({"input": userMessage})
     print(f"Response from LLM: {response}")
     logging.info(f"Response from LLM: {response}")
