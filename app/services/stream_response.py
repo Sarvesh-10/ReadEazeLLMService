@@ -38,17 +38,10 @@ async def streamLLMResponses(
     memory.chat_memory.add_user_message(userMessage)
 
     async def token_stream():
-        try:
-            
-            # Trigger LLM streaming
-            async for _ in chain.astream({"input": userMessage}):
-                pass
-        except Exception as e:
-            await queue.put(f"[ERROR] {str(e)}")
-        finally:
-            await queue.put("[END]")
+        # Fire off the async LLM stream
+        _ = await chain.ainvoke({"input": userMessage})
 
-        # Emit tokens pushed by handler
+        # Yield tokens as they come
         while True:
             token = await queue.get()
             if token == "[END]":
