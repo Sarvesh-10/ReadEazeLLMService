@@ -31,7 +31,7 @@ def buildConversationContext(messages: list):
     formattedMessages = []
       # Get last maxPairs of user-AI pairs
     formattedMessages.extend(messages)
-    if len(messages ==0):
+    if len(messages) == 0:
         print("No messages to format, returning empty list.")
         return formattedMessages
     formattedMessages = [format_message(msg) for msg in formattedMessages]
