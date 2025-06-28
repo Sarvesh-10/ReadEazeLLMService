@@ -12,7 +12,7 @@ def get_summary_memory(user_id: str, book_id: str,llm=None):
     session_key = f"{user_id}:{book_id}"
     
     if session_key not in _memory_cache:
-        chatMemory = get_chat_memory(user_id, book_id)
+        chatMemory = get_chat_memory(user_id, book_id,llm=llm)
         memory = ConversationSummaryMemory(
             llm=llm,
             memory_key="history",

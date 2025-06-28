@@ -2,6 +2,7 @@
 
 from langchain.chains import ConversationChain
 from app.llm.model_enums import ModelName, ModelProvider
+from app.services.memory import get_chat_memory
 from .memoryManager import get_summary_memory
 # Cache to store chains per user-book session
 _chain_cache = {}
