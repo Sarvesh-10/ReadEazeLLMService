@@ -1,4 +1,5 @@
-from langchain.prompts import PromptTemplate
+import asyncio
+from fastapi.responses import StreamingResponse
 from langchain.chains import ConversationChain
 from langchain_core.messages import SystemMessage
 from asyncio import Queue
@@ -28,25 +29,15 @@ async def streamLLMResponses(
     memory = get_summary_memory(user_id, book_id, llm=llm)
 
     # Define custom prompt with system message (not stored in memory)
-    prompt = PromptTemplate.from_template(
-    '''You are an AI assistant whose mission is not just to explain text but to make the user genuinely enjoy talking to you. Your goal is to be insightful, entertaining, and memorable.  
+    prompt = ChatPromptTemplate.from_template(
+    """
+    {system_message}
 
-- Use **Markdown** formatting in your responses for clear and visually appealing explanations.  
-- Structure responses with:  
-  - **Headings** for key sections (e.g., ## Explanation)  
-  - **Bullet points** for clarity  
-  - **Bold** and *italic* text for emphasis  
-  - **Code blocks** for technical content or examples  
-  - **Lists and sub-lists** for step-by-step breakdowns  
-  - Add a touch of humor, wit, or personality where appropriate  
-- Imagine you’re a charismatic, knowledgeable friend who explains things in a fun and relatable way.  
-- Adapt your style based on the user's mood—be more playful if the user seems relaxed, and more serious if they seem focused.  
-- Use analogies, metaphors, and pop culture references to make explanations vivid and interesting.  
-- Be proactive—suggest interesting facts, related concepts, or connections to keep the conversation engaging.  
-- Make the user feel heard—acknowledge questions and tailor responses to their curiosity.  
-- Leave the user with a sense of curiosity and excitement to learn more.  
-- At the end of each explanation, casually check if the user needs more clarification or has any follow-up questions.  
-- Above all, make the user think: "Wow, this AI is awesome!;  .\n\n{history}\nHuman: {input}\n'''
+    Previous conversation summary:
+    {history}
+
+    User: {input}
+    """
 )
 
 
