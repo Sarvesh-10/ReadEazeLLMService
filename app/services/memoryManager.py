@@ -1,25 +1,44 @@
-# memory_manager.py
-
 from langchain.memory import ConversationSummaryMemory
-import app.llm.llm_factory as factory
-import app.llm.model_enums as enums
+from langchain_groq import ChatGroq
+import os
 
-# Cache to store memory per user-book session
-_memory_cache = {}
+class MemoryManager:
+    _instances = {}
 
-def get_summary_memory(user_id: str, book_id: str, model: enums.ModelName = enums.ModelName.LLAMA3, provider: enums.ModelProvider = enums.ModelProvider.GROQ):
-    session_key = f"{user_id}:{book_id}"
-    
-    if session_key not in _memory_cache:
-        llm = factory.LLMFactory.get_llm(model=model, provider=provider)
-        memory = ConversationSummaryMemory(
-            llm=llm,
-            memory_key="history",
-            return_messages=True
+    def __new__(cls, user_id: str, book_id: str, threshold: int = 10):
+        key = f"{user_id}:{book_id}"
+        if key not in cls._instances:
+            instance = super(MemoryManager, cls).__new__(cls)
+            cls._instances[key] = instance
+            instance.__init__(user_id, book_id, threshold)
+        return cls._instances[key]
+
+    def __init__(self, user_id: str, book_id: str, threshold: int = 10):
+        self.user_id = user_id
+        self.book_id = book_id
+        self.threshold = threshold
+        self.llm = ChatGroq(
+            model=os.getenv("GROQ_CHAT_MODEL"),
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        _memory_cache[session_key] = memory
-        print(f"[MemoryManager] Created memory for session: {session_key}")
-    else:
-        print(f"[MemoryManager] Using cached memory for session: {session_key}")
 
-    return _memory_cache[session_key]
+        self.memory = ConversationSummaryMemory(
+            memory_key=f"session:{user_id}:book:{book_id}",
+            max_token_limit=1000,
+            return_messages=True,
+            input_key="input",
+            output_key="output",
+            llm=self.llm,
+        )
+
+    def add_message(self, message: str, assistant_response: str):
+        print("add message called")
+        self.memory.save_context(
+    {"input":message},
+    {"output":assistant_response})
+
+    def get_memory(self):
+        return self.memory.load_memory_variables({})
+
+    def clear_memory(self):
+        self.memory.clear()
