@@ -38,7 +38,7 @@ async def streamLLMResponses(
     # Create the LLMChain
     chain = LLMChain(llm=llm, prompt=prompt, memory=memory)
     response = await chain.ainvoke({"input": userMessage})
-    print(f"Response from LLM: {response}")
+    print(f"Response from LLM: {response.content}")
     logging.info(f"Response from LLM: {response}")
 
     return {"response": response}
