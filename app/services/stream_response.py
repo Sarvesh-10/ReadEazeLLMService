@@ -11,7 +11,7 @@ import app.llm.model_enums as enums
 from langchain.chains import LLMChain
 from .memoryManager import get_summary_memory
 
-async def streamLLMResponses(
+def streamLLMResponses(
     user_id: str,
     book_id: str,
     userMessage: str,
@@ -52,7 +52,6 @@ async def streamLLMResponses(
     async def token_stream():
         # Start streaming the LLM output in the background
         producer = asyncio.create_task(consume_stream(chain.astream({"input": userMessage}), queue))
-        
 
         # Consume queue and yield to client
         while True:
