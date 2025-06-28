@@ -1,6 +1,6 @@
-
+from langchain.prompts import PromptTemplate
 from langchain.chains import ConversationChain
-from langchain_core.messages import SystemMessage,HumanMessage
+from langchain_core.messages import SystemMessage
 from asyncio import Queue
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from app.llm.llm_factory import LLMFactory
@@ -28,10 +28,8 @@ async def streamLLMResponses(
     memory = get_summary_memory(user_id, book_id, llm=llm)
 
     # Define custom prompt with system message (not stored in memory)
-    
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=
-        """You are an AI assistant whose mission is not just to explain text but to make the user genuinely enjoy talking to you. Your goal is to be insightful, entertaining, and memorable.  
+    prompt = PromptTemplate.from_template(
+    '''You are an AI assistant whose mission is not just to explain text but to make the user genuinely enjoy talking to you. Your goal is to be insightful, entertaining, and memorable.  
 
 - Use **Markdown** formatting in your responses for clear and visually appealing explanations.  
 - Structure responses with:  
@@ -48,12 +46,10 @@ async def streamLLMResponses(
 - Make the user feel heard—acknowledge questions and tailor responses to their curiosity.  
 - Leave the user with a sense of curiosity and excitement to learn more.  
 - At the end of each explanation, casually check if the user needs more clarification or has any follow-up questions.  
-- Above all, make the user think: "Wow, this AI is awesome!;
-        """
-    ),
-    MessagesPlaceholder(variable_name="history"),  # this connects with memory
-    HumanMessage(content="{input}")  # latest user input
-    ])
+- Above all, make the user think: "Wow, this AI is awesome!;  .\n\n{history}\nHuman: {input}\n'''
+)
+
+
     # Create the LLMChain
     chain = LLMChain(llm=llm, prompt=prompt, memory=memory, verbose=True)
     response = await chain.ainvoke({"input": userMessage})
