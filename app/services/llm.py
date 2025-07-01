@@ -2,7 +2,6 @@ import json
 import os
 from typing import Optional 
 import httpx
-import asyncio
 from fastapi.responses import StreamingResponse
 
 
@@ -13,8 +12,10 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage
 from .memory import get_chat_memory
 from ..utils import format_message
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from .memoryManager import MemoryManager
+from ..customLogging import logger
+
 # load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_URL = os.getenv("GROQ_API_URL")
@@ -32,7 +33,7 @@ def buildConversationContext(messages: list):
       # Get last maxPairs of user-AI pairs
     formattedMessages.extend(messages)
     if len(messages) == 0:
-        print("No messages to format, returning empty list.")
+        logger.warning("No messages found in conversation history.")
         return formattedMessages
     formattedMessages = [format_message(msg) for msg in formattedMessages]
     print(f"Formatted messages: {formattedMessages}")
@@ -64,7 +65,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     print(f"Messages in memory: {allMessages}")
     # Format the system and user messages
     if(shouldSummarize(allMessages)):
-        print("Summarizing conversation...")
+        logger.info("Summarization needed, processing last six messages.")
         lastSixConvos = allMessages[-6:]
         print(f"Last six conversations: {lastSixConvos}")
         summarySystemMessage = (
@@ -84,7 +85,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         messagesToSummarize.append( HumanMessage(content="Here are the next few turns of the conversation:"))
         messagesToSummarize.extend(lastSixConvos)
         summary = await summaryLLM.ainvoke(messagesToSummarize)
-        print(f"Generated summary: {summary.content.strip()}")
+        logger.info(f"Generated summary: {summary.content.strip()}")
         redismemory.history.redis_client.set(f"summary:{user_id}:{book_id}", summary.content.strip(), ex=7200)
         systemMessage = f"{systemMessage}\n\nHere is the updated summary of the conversation:\n{summary.content.strip()}"
           # Store summary for 1 hour
@@ -95,7 +96,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
 
 
     full_message = []  # ✅ Moved to outer scope
-    print(f"Formatted messages: {formatted_messages}")
+
 
     async def stream_response():
         print("Sending request to Groq...")
@@ -108,15 +109,14 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         try:
             async with httpx.AsyncClient(timeout=None) as client:
                 async with client.stream("POST", GROQ_API_URL, headers=HEADERS, json=payload) as response:
-                    print(f"Groq response status: {response.status_code}")
-                    print(f"Groq headers: {response.headers}")
+                    logger.info(f"Groq response status: {response.status_code}")
+                    logger.info(f"Groq response headers: {response.headers}")
 
                     async for line in response.aiter_lines():
                         line = line.strip()
                         if not line:
                             continue
 
-                        print(f"RAW line: {line}")
 
                         if line == "data: [DONE]":
                             break
@@ -130,22 +130,23 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
                             if choices and "delta" in choices[0]:
                                 content = choices[0]["delta"].get("content", "")
                                 if content:
-                                    print(f"Streaming content: {content}")
+                                    logger.info(f"Streaming content: {content}")
                                     full_message.append(content)
                                     yield content  # ✅ no need for f-string
 
                         except json.JSONDecodeError as e:
-                            print(f"Malformed JSON: {line} - Error: {e}")
+                            logger.error(f"JSON decode error: {e} for line: {line}")
                             continue
 
         except Exception as e:
-            print(f"Error during streaming: {e}")
+            logger.error(f"Error during streaming: {e}")
+            
 
         if full_message:
-            print("Streaming complete, saving full message.")
+            logger.info("Streaming completed, saving full message.")
             full_text = "".join(full_message)
             redismemory.save_message(full_text, "AI")
             redismemory.save_message(userMessage, "user")
 
-            print(f"Full message saved: {full_text}")
+            logger.info(f"Full message saved: {full_text}")
     return StreamingResponse(stream_response(), media_type="text/event-stream")
