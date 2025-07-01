@@ -27,17 +27,27 @@ summaryLLM = ChatGroq(
     max_tokens=4000,
     streaming=False
 )
+def buildConversationContext(messages: list,mod:int):
 
-def buildConversationContext(messages: list):
-    formattedMessages = []
-      # Get last maxPairs of user-AI pairs
-    formattedMessages.extend(messages)
+    "write the code to build the conversation context by taking last len(messages) % mod messages from the list of messages"
+
+    logger.info(f"Building conversation context with mod: {mod}")
     if len(messages) == 0:
         logger.warning("No messages found in conversation history.")
-        return formattedMessages
-    formattedMessages = [format_message(msg) for msg in formattedMessages]
-    print(f"Formatted messages: {formattedMessages}")
-    return formattedMessages
+        return []
+    count = len(messages) % mod
+    if count == 0:
+        logger.info("No messages to include in conversation context, returning empty list.")
+        return []
+    context = [format_message(msg) for msg in messages[-count:]]
+    if not context:
+        logger.warning("No messages to include in conversation context.")
+        return []
+    logger.info(f"Built conversation context with {len(context)} messages.")
+    logger.info(f"Context: {context}")
+    return context
+    # Sort messages by timestamp if they have a 'timestamp' field
+    
 def shouldSummarize(messages):
     """
     Determines if the conversation should be summarized based on the number of messages.
@@ -51,18 +61,14 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     memory = MemoryManager(user_id=user_id, book_id=book_id)
     redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
     allMessages = redismemory.get_messages()
-    formatted_messages = []
-    if(len(allMessages) <6):
-        formatted_messages = buildConversationContext(allMessages)
+    prevMemoryIncluded = False
     
-    if redismemory.history.redis_client.exists(f"summary:{user_id}:{book_id}"):
-        previous_summary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
-        if previous_summary:
-            previous_summary = previous_summary.decode('utf-8')
-            systemMessage = f"{systemMessage}\n\nHere is the previous summary of the conversation:\n{previous_summary.strip()}"
-            print(f"Using previous summary: {previous_summary.strip()}")
 
-    print(f"Messages in memory: {allMessages}")
+    logger.info(f"Streaming LLM responses for user: {user_id}, book: {book_id}")
+    logger.info(f"System message: {systemMessage}")
+    logger.info(f"User message: {userMessage}")
+    logger.info(f"Total messages in history: {len(allMessages)}")
+    logger.info(f"All messages: {allMessages}")
     # Format the system and user messages
     if(shouldSummarize(allMessages)):
         logger.info("Summarization needed, processing last six messages.")
@@ -81,6 +87,8 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         previouSummary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
         if previouSummary:
             previouSummary = previouSummary.decode('utf-8')
+            logger.info(f"Previous summary found: {previouSummary}")
+            prevMemoryIncluded = True
             messagesToSummarize.append(HumanMessage(content=f"Previous summary:\n{previouSummary}"))
         messagesToSummarize.append( HumanMessage(content="Here are the next few turns of the conversation:"))
         messagesToSummarize.extend(lastSixConvos)
@@ -90,7 +98,16 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         systemMessage = f"{systemMessage}\n\nHere is the updated summary of the conversation:\n{summary.content.strip()}"
           # Store summary for 1 hour
 
-
+    if not prevMemoryIncluded:
+        previouSummary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
+        if previouSummary:
+            previouSummary = previouSummary.decode('utf-8')
+            logger.info(f"Previous summary found: {previouSummary}")
+            prevMemoryIncluded = True
+            systemMessage = f"{systemMessage}\n\nHere is the previous summary of the conversation:\n{previouSummary}"
+        
+    mod = len(allMessages)-len(allMessages)%6 + 2 if len(allMessages) > 6 else 6
+    formatted_messages = buildConversationContext(allMessages,mod)
     formatted_messages.append({"role": "system", "content": systemMessage})
     formatted_messages.append({"role": "user", "content": userMessage})
 
