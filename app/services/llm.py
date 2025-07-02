@@ -35,7 +35,7 @@ def buildConversationContext(messages: list,mod:int):
     if len(messages) == 0:
         logger.warning("No messages found in conversation history.")
         return []
-    count = len(messages) % mod
+    count = len(messages) % 6
     if count == 0:
         logger.info("No messages to include in conversation context, returning empty list.")
         return []
@@ -61,7 +61,6 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     memory = MemoryManager(user_id=user_id, book_id=book_id)
     redismemory = get_chat_memory(user_id=user_id, book_id=book_id)
     allMessages = redismemory.get_messages()
-    prevMemoryIncluded = False
     
 
     logger.info(f"Streaming LLM responses for user: {user_id}, book: {book_id}")
@@ -69,6 +68,11 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     logger.info(f"User message: {userMessage}")
     logger.info(f"Total messages in history: {len(allMessages)}")
     logger.info(f"All messages: {allMessages}")
+    previouSummary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
+    if previouSummary:
+        previouSummary = previouSummary.decode('utf-8')
+        logger.info(f"Previous summary found: {previouSummary}")
+        systemMessage = f"{systemMessage}\n\nHere is the previous summary of the conversation:\n{previouSummary}"
     # Format the system and user messages
     if(shouldSummarize(allMessages)):
         logger.info("Summarization needed, processing last six messages.")
@@ -98,16 +102,11 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         systemMessage = f"{systemMessage}\n\nHere is the updated summary of the conversation:\n{summary.content.strip()}"
           # Store summary for 1 hour
 
-    if not prevMemoryIncluded:
-        previouSummary = redismemory.history.redis_client.get(f"summary:{user_id}:{book_id}")
-        if previouSummary:
-            previouSummary = previouSummary.decode('utf-8')
-            logger.info(f"Previous summary found: {previouSummary}")
-            prevMemoryIncluded = True
-            systemMessage = f"{systemMessage}\n\nHere is the previous summary of the conversation:\n{previouSummary}"
+
         
-    mod = len(allMessages)-len(allMessages)%6 + 2 if len(allMessages) > 6 else 6
-    formatted_messages = buildConversationContext(allMessages,mod)
+        
+    
+    formatted_messages = buildConversationContext(allMessages)
     formatted_messages.append({"role": "system", "content": systemMessage})
     formatted_messages.append({"role": "user", "content": userMessage})
 
@@ -162,8 +161,8 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         if full_message:
             logger.info("Streaming completed, saving full message.")
             full_text = "".join(full_message)
-            redismemory.save_message(full_text, "AI")
             redismemory.save_message(userMessage, "user")
+            redismemory.save_message(full_text, "AI")
 
             logger.info(f"Full message saved: {full_text}")
     return StreamingResponse(stream_response(), media_type="text/event-stream")
