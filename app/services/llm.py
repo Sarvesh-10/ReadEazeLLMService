@@ -27,11 +27,11 @@ summaryLLM = ChatGroq(
     max_tokens=4000,
     streaming=False
 )
-def buildConversationContext(messages: list,mod:int):
+def buildConversationContext(messages: list):
 
     "write the code to build the conversation context by taking last len(messages) % mod messages from the list of messages"
 
-    logger.info(f"Building conversation context with mod: {mod}")
+    logger.info("Building conversation context from messages.")
     if len(messages) == 0:
         logger.warning("No messages found in conversation history.")
         return []
