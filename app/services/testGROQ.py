@@ -14,31 +14,27 @@ HEADERS = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "applicati
 #     streaming=False
 # )
 
-system_prompt = """You are a memory compression assistant. Your job is to maintain a running summary of a conversation.
-
-- You will be given a previous summary (if any).
-- You will also be given the next few turns of conversation.
-- Your task is to return an updated summary that integrates the new information with the previous summary.
-- Be concise and preserve key context."""
-
+system_prompt = """Summarize the conversation below, combining it with any previous summary. Keep it short and focused. Only return the updated summary — no explanation.
+This is a conversation and summary between a user and an AI assistant. Please summarize this in a neutral tone, without any personal opinions or biases. The summary should be concise and to the point, capturing the main ideas and key points discussed in the conversation."""
 messages = [
     {"role": "system", "content": system_prompt},
     {"role": "user", "content": "Previous summary:\nNone"},
     {"role": "user", "content": "Here are the next few turns of the conversation:"},
-    {"role": "user", "content": "Hi I am Akhil"},
-    {"role": "assistant", "content": "Nice to meet you, Akhil! 😊 I'm your friendly AI sidekick..."},
-    {"role": "user", "content": "do you recollect my name?"},
-    {"role": "assistant", "content": "I do! Your name is Akhil..."},
-    {"role": "user", "content": "i am reading the daily stoic book now"},
-    {"role": "assistant", "content": "The Daily Stoic is an amazing book! Ryan Holiday’s writing..."}
+    {"role": "user", "content": "Hi I am trying to read the Introduction to linear algebra and I am on dot product..."},
+    {"role": "assistant", "content": "You're on the dot product section..."},
+    {"role": "user", "content": "Put a weight of 4 at x = -1..."},
+    {"role": "assistant", "content": "**The See-Saw Example**..."},
+    {"role": "user", "content": "This example is typical of engineering and science..."},
+    {"role": "assistant", "content": "**Moments and Balance**..."},
+    {"role": "user", "content": "Please summarize the conversation so far.I hav also given the previous summary if it exists"}
 ]
 
 async def call_groq():
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": 300,
+        # "temperature": 0.7,
+        # "max_tokens": 300,
         "stream": False
     }
 
