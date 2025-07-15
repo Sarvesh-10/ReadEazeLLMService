@@ -22,7 +22,7 @@ GROQ_API_URL = os.getenv("GROQ_API_URL")
 HEADERS = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json","Accept": "text/event-stream"}
 
 summaryLLM = ChatGroq(
-    model="llama3-8b-8192",
+    model="llama-3.3-70b-versatile",
     api_key=os.getenv("GROQ_API_KEY"),
     max_tokens=4000,
     streaming=False
@@ -78,13 +78,8 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
         logger.info("Summarization needed, processing last six messages.")
         lastSixConvos = allMessages[-6:]
         print(f"Last six conversations: {lastSixConvos}")
-        summarySystemMessage = (
-    "You are a memory compression assistant. Your job is to maintain a running summary of a conversation.\n\n"
-    "- You will be given a previous summary (if any).\n"
-    "- You will also be given the next few turns of conversation.\n"
-    "- Your task is to return an updated summary that integrates the new information with the previous summary.\n"
-    "- Be concise and preserve key context. Respond only with the updated summary. No explanations, no headings."
-)   
+        summarySystemMessage = """Summarize the conversation below, combining it with any previous summary. Keep it short and focused. Only return the updated summary — no explanation.
+        This is a conversation and summary between a user and an AI assistant. Please summarize this in a neutral tone, without any personal opinions or biases. The summary should be concise and to the point, capturing the main ideas and key points discussed in the conversation."""
         
             
         messagesToSummarize = [SystemMessage(content=summarySystemMessage)]
@@ -96,6 +91,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
             messagesToSummarize.append(HumanMessage(content=f"Previous summary:\n{previouSummary}"))
         messagesToSummarize.append( HumanMessage(content="Here are the next few turns of the conversation:"))
         messagesToSummarize.extend(lastSixConvos)
+        messagesToSummarize.append(HumanMessage(content="Please summarize the conversation so far.I hav also given the previous summary if it exists"))
         summary = await summaryLLM.ainvoke(messagesToSummarize)
         logger.info(f"Generated summary: {summary.content.strip()}")
         redismemory.history.redis_client.set(f"summary:{user_id}:{book_id}", summary.content.strip(), ex=7200)
@@ -117,7 +113,7 @@ async def streamLLMResponses(user_id: str, book_id: str, systemMessage: str, use
     async def stream_response():
         print("Sending request to Groq...")
         payload = {
-            "model": "llama3-8b-8192",
+            "model": "llama-3.3-70b-versatile",
             "messages": formatted_messages,
             "stream": True
         }
