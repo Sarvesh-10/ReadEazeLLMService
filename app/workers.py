@@ -27,7 +27,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qdrant_models
 
 
-logger = logging.get_logger("worker")
+logger = logging.getLogger("worker")
 QUEUE_NAME = "book_indexing_queue"
 FAILED_QUEUE = "failed_jobs_queue"
 SUCCESS_QUEUE = "successful_jobs_queue"
