@@ -1,4 +1,4 @@
-name: Build and Push LLM Service Image
+name: Build and Push LLM Service Images
 
 on:
   push:
@@ -23,9 +23,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push LLM service image
+      - name: Build and push FastAPI image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-images:${{ github.ref_name == 'master' && 'llm-latest' || format('llm-{0}', github.ref_name) }}
+          target: fastapi
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-fastapi:${{ github.ref_name == 'master' && 'latest' || format('staging-{0}', github.ref_name) }}
+
+      - name: Build and push Worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          target: worker
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-worker:${{ github.ref_name == 'master' && 'latest' || format('staging-{0}', github.ref_name) }}

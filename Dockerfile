@@ -1,6 +1,7 @@
-FROM python:3.11-slim
+# --------- BASE STAGE ---------
+FROM python:3.11-slim AS base
 
-# Install system dependencies and curl
+# Install system dependencies
 RUN apt-get update && apt-get install -y curl build-essential
 
 # Install Poetry
@@ -9,17 +10,32 @@ ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
-# Copy only dependency files first to leverage Docker cache
+# Copy dependency files
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies without installing the package itself (no-root)
+# Install dependencies
 RUN poetry install --no-root --no-interaction
 
-# Copy the rest of the application code
+# --------- FASTAPI IMAGE ---------
+FROM base AS fastapi
+
+# Copy all app code
 COPY . .
 
-# Expose the port your FastAPI app will run on
+# Expose FastAPI port
 EXPOSE 8000
 
-# Run the app using Poetry (adjust the module path if needed)
+# Run FastAPI app
 CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# --------- WORKER IMAGE (slim) ---------
+FROM base AS worker
+
+# Only copy the worker script and necessary modules
+COPY worker.py .  
+# If worker imports other modules, copy them too, e.g.:
+# COPY utils/ ./utils/
+# COPY config.py .
+
+# Run worker
+CMD ["poetry", "run", "python", "worker.py"]
