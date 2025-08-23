@@ -5,7 +5,7 @@ from config import redis_client
 import os
 import customLogging
 # LangChain PDF loader, embeddings, vector store
-from langchain.document_loaders import PDFLoader
+from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import CohereEmbeddings
 from langchain_community.vectorstores import Qdrant
@@ -93,7 +93,7 @@ def process_job(job_data: dict):
         update_job_status(job_id, "PROCESSING")
 
         # 1. Extract text from PDF using LangChain PDFLoader
-        loader = PDFLoader(pdf_file)
+        loader = PyPDFLoader(pdf_file)
         documents = loader.load()
         if not documents:
             raise ValueError("No text extracted from PDF.")
