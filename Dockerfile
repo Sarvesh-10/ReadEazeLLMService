@@ -1,8 +1,14 @@
 # --------- BASE STAGE ---------
 FROM python:3.11-slim AS base
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y curl build-essential
+
+# Install system dependencies (including libpq-dev for psycopg2)
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
