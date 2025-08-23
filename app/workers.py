@@ -90,7 +90,7 @@ def process_job(job_data: dict):
         temp_pdf_path = f"/tmp/book_{book_id}.pdf"
         pdf_file = fetch_pdf_from_db(book_id, temp_pdf_path)
         logger.info(f"Fetched PDF for book_id={book_id} to {pdf_file}")
-        update_job_status(job_id, "PROCESSING")
+        update_job_status(job_id, "IN_PROGRESS")
 
         # 1. Extract text from PDF using LangChain PDFLoader
         loader = PyPDFLoader(pdf_file)
