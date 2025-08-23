@@ -42,6 +42,7 @@ COPY app/workers.py ./worker.py
 # If it imports other files in app/, copy them too
 COPY app/config.py ./config.py
 COPY app/utils.py ./utils.py
+COPY app/customLogging.py ./customLogging.py
 
 # Run worker
 CMD ["poetry", "run", "python", "worker.py"]
