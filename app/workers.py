@@ -50,7 +50,7 @@ def fetch_pdf_from_db(book_id: int, output_path: str) -> str:
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT pdf_data FROM books WHERE id = %s", (book_id,))
+            cur.execute("SELECT file_data FROM books WHERE id = %s", (book_id,))
             row = cur.fetchone()
             if row is None:
                 raise ValueError(f"No book found with id={book_id}")
@@ -70,7 +70,7 @@ def update_job_status(job_id: int, status: str):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE jobs SET status = %s, updated_at = NOW() WHERE id = %s",
+                "UPDATE book_indexing_jobs SET status = %s, updated_at = NOW() WHERE id = %s",
                 (status, job_id),
             )
             conn.commit()
