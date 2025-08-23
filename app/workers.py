@@ -80,7 +80,7 @@ def update_job_status(job_id: int, status: str):
 
 # ----------------- Job Processing -----------------
 def process_job(job_data: dict):
-    job_id = job_data["job_id"]
+    job_id = job_data["id"]
     book_id = job_data["book_id"]
     user_id = job_data.get("user_id")
 
