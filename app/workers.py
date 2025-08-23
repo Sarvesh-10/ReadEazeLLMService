@@ -3,9 +3,9 @@ import time
 import psycopg2
 from config import redis_client
 import os
-import customLogging
+import logging
 # LangChain PDF loader, embeddings, vector store
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import CohereEmbeddings
 from langchain_community.vectorstores import Qdrant
@@ -27,7 +27,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qdrant_models
 
 
-logger = customLogging.get_logger(__name__)
+logger = logging.get_logger("worker")
 QUEUE_NAME = "book_indexing_queue"
 FAILED_QUEUE = "failed_jobs_queue"
 SUCCESS_QUEUE = "successful_jobs_queue"
