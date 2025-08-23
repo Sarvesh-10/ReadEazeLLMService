@@ -38,7 +38,7 @@ CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", 
 FROM base AS worker
 
 # Copy worker script and any other modules it needs
-COPY app/worker.py ./worker.py
+COPY app/workers.py ./worker.py
 # If it imports other files in app/, copy them too
 COPY app/config.py ./config.py
 COPY app/utils.py ./utils.py
