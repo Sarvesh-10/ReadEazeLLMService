@@ -135,6 +135,7 @@ def process_job(job_data: dict):
 # ----------------- Worker Loop -----------------
 def worker_loop():
     print("Worker started. Waiting for jobs...")
+    logger.info("Worker started. Waiting for jobs...")
     # Test Qdrant connectivity once before starting loop
     try:
         client = QdrantClient(QDRANT_URL)
@@ -146,6 +147,7 @@ def worker_loop():
 
     while True:
         try:
+            logger.info("Waiting for jobs...")
             job = redis_client.blpop(QUEUE_NAME, timeout=0)
             _, job_json = job
             job_data = json.loads(job_json)
