@@ -7,7 +7,7 @@ import logging
 # LangChain PDF loader, embeddings, vector store
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import CohereEmbeddings
+from langchain_cohere import CohereEmbeddings
 from langchain_community.vectorstores import Qdrant
 # LangChain text splitter
 # add near top with other imports
