@@ -33,7 +33,7 @@ FAILED_QUEUE = "failed_jobs_queue"
 SUCCESS_QUEUE = "successful_jobs_queue"
 DB_URL = os.getenv("DB_URL", "postgres://user:pass@localhost/dbname")
 # Cohere API Key
-COHERE_API_KEY = os.getenv("COHERE_API_KEY", "your-cohere-api-key")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY", "your-cohere-api-key").strip()
 # Qdrant config
 QDRANT_URL = "http://qdrant:6333"
 QDRANT_COLLECTION = "books_collection"
@@ -114,13 +114,14 @@ def process_job(job_data: dict):
             d.metadata["user_id"] = user_id
 
         # 4. Embed and index using LangChain CohereEmbeddings and Qdrant
-        embeddings = CohereEmbeddings(model="embed-english-v3.0", cohere_api_key=COHERE_API_KEY)
+        embeddings = CohereEmbeddings(model="embed-english-v3.0", cohere_api_key=COHERE_API_KEY.strip())
         vectorstore = Qdrant.from_documents(
             split_docs,
             embeddings,
             url=QDRANT_URL,
             collection_name=QDRANT_COLLECTION,
         )
+        
 
         logger.info(f"Indexed book_id={book_id} with {len(split_docs)} chunks.")
         # Mark job as completed
