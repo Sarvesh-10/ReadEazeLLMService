@@ -27,8 +27,6 @@ dependencies = [
     "pypdf2 (>=3.0.1,<4.0.0)",
     "qdrant-client (>=1.15.1,<2.0.0)",
     "pypdf (>=6.0.0,<7.0.0)",
-    "torch (>=2.8.0,<3.0.0)",
-    "sentence-transformers (>=5.1.0,<6.0.0)",
 ]
 
 
