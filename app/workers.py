@@ -1,5 +1,4 @@
 import json
-import time
 import psycopg2
 from config import redis_client
 import os
@@ -7,7 +6,6 @@ import logging
 import requests
 # LangChain PDF loader and vector store
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import Qdrant
 # LangChain text splitter
 try:
     from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -21,7 +19,9 @@ except ImportError:
 
 # Qdrant client
 from qdrant_client import QdrantClient
-
+from qdrant_client.http import models
+import uuid
+import math
 # ----------------- Logging -----------------
 logging.basicConfig(
     level=logging.INFO,
@@ -37,7 +37,7 @@ SUCCESS_QUEUE = "successful_jobs_queue"
 DB_URL = os.getenv("DB_URL", "postgres://user:pass@localhost/dbname")
 QDRANT_URL = "http://qdrant:6333"
 QDRANT_COLLECTION = "books_collection"
-HF_EMBEDDING_URL = os.getenv("HF_EMBEDDING_URL", "http://huggingface-embeddings:80")
+HF_EMBEDDING_URL = os.getenv("HF_EMBEDDING_URL", "http://huggingface-embeddings:80/predict")
 
 # ----------------- DB Helpers -----------------
 def get_db_connection():
@@ -74,23 +74,31 @@ def update_job_status(job_id: int, status: str):
     finally:
         conn.close()
 
-# ----------------- HF Embedding Client -----------------
-class HFEmbeddingClient:
-    def __init__(self, service_url=HF_EMBEDDING_URL):
-        self.service_url = service_url.rstrip("/")
-        self.session = requests.Session()
 
-    def get_embeddings(self, texts: list):
-        """
-        texts: List[str]
-        returns: List[List[float]] embeddings
-        """
-        payload = {"text": texts}
-        response = self.session.post(f"{self.service_url}/v1/embeddings", json=payload)
-        response.raise_for_status()
-        return response.json()["embedding"]  # adjust key based on HF image
+client = QdrantClient(QDRANT_URL)
 
-embedding_client = HFEmbeddingClient()
+def embed_texts_in_batches(texts, batch_size=32):
+    """
+    Batches text and sends to the HuggingFace embedding API.
+    Returns a list of embeddings for all texts.
+    """
+    all_embeddings = []
+    total_batches = math.ceil(len(texts) / batch_size)
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+
+        response = requests.post(HF_EMBEDDING_URL, json={"input": batch})
+        if response.status_code == 200:
+            embeddings = response.json()["data"]
+            # API returns [{"embedding": [...], "index": idx}, ...]
+            all_embeddings.extend([item["embedding"] for item in embeddings])
+        else:
+            raise Exception(f"API Error {response.status_code}: {response.text}")
+
+        logger.info(f"Processed batch {i//batch_size + 1} of {total_batches}")
+
+    return all_embeddings
 
 # ----------------- Job Processing -----------------
 def process_job(job_data: dict):
@@ -117,22 +125,26 @@ def process_job(job_data: dict):
         for doc in documents:
             split_docs.extend(splitter.create_documents([doc.page_content], metadatas=[doc.metadata]))
 
-        # Add metadata
-        for d in split_docs:
-            d.metadata["book_id"] = book_id
-            d.metadata["job_id"] = job_id
-            d.metadata["user_id"] = user_id
-
-        # ----------------- Embed using HF embedding pod -----------------
+        
         texts = [d.page_content for d in split_docs]
-        embeddings = embedding_client.get_embeddings(texts)
-
+        embeddings = embed_texts_in_batches(texts, batch_size=32)
+        points = [
+        models.PointStruct(
+        id=str(uuid.uuid4()),
+        vector=emb,
+        payload={
+            "text": text,
+            "book_id": book_id,
+            "job_id": job_id,
+            "user_id": user_id
+        }
+        )
+    for text, emb in zip(texts, embeddings)
+]
         # Push to Qdrant
-        vectorstore = Qdrant.from_documents(
-            split_docs,
-            embeddings,
-            url=QDRANT_URL,
+        client.upsert(
             collection_name=QDRANT_COLLECTION,
+            points=points
         )
 
         logger.info(f"Indexed book_id={book_id} with {len(split_docs)} chunks.")
@@ -147,7 +159,6 @@ def process_job(job_data: dict):
 def worker_loop():
     logger.info("Worker started. Waiting for jobs...")
     try:
-        client = QdrantClient(QDRANT_URL)
         collections = client.get_collections()
         logger.info(f"Qdrant reachable. Collections: {[c.name for c in collections.collections]}")
     except Exception as e:
