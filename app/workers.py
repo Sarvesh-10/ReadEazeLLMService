@@ -32,6 +32,7 @@ logger = logging.getLogger("worker")
 
 # ----------------- Config -----------------
 QUEUE_NAME = "book_indexing_queue"
+OUTPUT_JOB_QUEUE = "output_jobs_queue"
 FAILED_QUEUE = "failed_jobs_queue"
 SUCCESS_QUEUE = "successful_jobs_queue"
 DB_URL = os.getenv("DB_URL", "postgres://user:pass@localhost/dbname")
@@ -151,11 +152,12 @@ def process_job(job_data: dict):
 
         logger.info(f"Indexed book_id={book_id} with {len(split_docs)} chunks.")
         update_job_status(job_id, "COMPLETED")
+        return True
 
     except Exception as e:
         logger.error(f"Error processing job {job_id}: {e}")
         update_job_status(job_id, "FAILED")
-        redis_client.rpush(FAILED_QUEUE, json.dumps(job_data))
+        redis_client.rpush(OUTPUT_JOB_QUEUE, json.dumps(job_data))
 
 # ----------------- Worker Loop -----------------
 def worker_loop():
@@ -173,7 +175,12 @@ def worker_loop():
             job = redis_client.blpop(QUEUE_NAME, timeout=0)
             _, job_json = job
             job_data = json.loads(job_json)
-            process_job(job_data)
+            isIndexed = process_job(job_data)
+            if isIndexed:
+                logger.info(f"Job {job_data['id']} completed successfully.")
+                redis_client.rpush(OUTPUT_JOB_QUEUE, json.dumps(job_data))
+            else:
+                logger.error(f"Job {job_data['id']} failed during processing.")
         except Exception as e:
             logger.error(f"Worker loop error: {e}")
 
