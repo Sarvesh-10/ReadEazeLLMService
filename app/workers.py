@@ -38,6 +38,8 @@ DB_URL = os.getenv("DB_URL", "postgres://user:pass@localhost/dbname")
 QDRANT_URL = "http://qdrant:6333"
 QDRANT_COLLECTION = "books_collection"
 HF_EMBEDDING_URL = os.getenv("HF_EMBEDDING_URL", "http://huggingface-embeddings:80/predict")
+API_URL = "https://lamhieu-lightweight-embeddings.hf.space/v1/embeddings"
+
 
 # ----------------- DB Helpers -----------------
 def get_db_connection():
@@ -88,7 +90,7 @@ def embed_texts_in_batches(texts, batch_size=32):
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
 
-        response = requests.post(HF_EMBEDDING_URL, json={"input": batch})
+        response = requests.post(API_URL, json={"input": batch})
         if response.status_code == 200:
             embeddings = response.json()["data"]
             # API returns [{"embedding": [...], "index": idx}, ...]
