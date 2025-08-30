@@ -39,7 +39,7 @@ DB_URL = os.getenv("DB_URL", "postgres://user:pass@localhost/dbname")
 QDRANT_URL = "http://qdrant:6333"
 QDRANT_COLLECTION = "books_collection"
 HF_EMBEDDING_URL = os.getenv("HF_EMBEDDING_URL", "http://huggingface-embeddings:80/predict")
-API_URL = "https://lamhieu-lightweight-embeddings.hf.space/v1/embeddings"
+API_URL = 'https://sarvesh92-sentence-transformers-all-minilm-l6-v2.hf.space/embed'
 
 
 # ----------------- DB Helpers -----------------
@@ -93,7 +93,7 @@ def embed_texts_in_batches(texts, batch_size=32):
 
         response = requests.post(API_URL, json={"input": batch})
         if response.status_code == 200:
-            embeddings = response.json()["data"]
+            embeddings = response.json()["embedding"]
             # API returns [{"embedding": [...], "index": idx}, ...]
             all_embeddings.extend([item["embedding"] for item in embeddings])
         else:
