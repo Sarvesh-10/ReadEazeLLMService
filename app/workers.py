@@ -93,7 +93,7 @@ def embed_texts_in_batches(texts, batch_size=32):
 
         response = requests.post(API_URL, json={"texts": batch})
         if response.status_code == 200:
-            embeddings = response.json()["embedding"]
+            embeddings = response.json()
             # API returns [{"embedding": [...], "index": idx}, ...]
             all_embeddings.extend([item["embedding"] for item in embeddings])
         else:
