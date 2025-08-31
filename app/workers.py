@@ -93,9 +93,9 @@ def embed_texts_in_batches(texts, batch_size=32):
 
         response = requests.post(API_URL, json={"texts": batch})
         if response.status_code == 200:
-            embeddings = response.json()
-            # API returns [{"embedding": [...], "index": idx}, ...]
-            all_embeddings.extend([item["embedding"] for item in embeddings])
+                data = response.json()
+                embeddings = data["embedding"]  # This is already a list of vectors
+                all_embeddings.extend(embeddings)
         else:
             raise Exception(f"API Error {response.status_code}: {response.text}")
 
