@@ -115,6 +115,7 @@ def process_job(job_data: dict):
         pdf_file = fetch_pdf_from_db(book_id, temp_pdf_path)
         logger.info(f"Fetched PDF for book_id={book_id} to {pdf_file}")
         update_job_status(job_id, "IN_PROGRESS")
+        job_data["status"] = "IN_PROGRESS"
 
         # Load PDF
         loader = PyPDFLoader(pdf_file)
@@ -152,11 +153,13 @@ def process_job(job_data: dict):
 
         logger.info(f"Indexed book_id={book_id} with {len(split_docs)} chunks.")
         update_job_status(job_id, "COMPLETED")
+        job_data["status"] = "COMPLETED"
         return True
 
     except Exception as e:
         logger.error(f"Error processing job {job_id}: {e}")
         update_job_status(job_id, "FAILED")
+        job_data["status"] = "FAILED"
         redis_client.rpush(OUTPUT_JOB_QUEUE, json.dumps(job_data))
 
 # ----------------- Worker Loop -----------------
