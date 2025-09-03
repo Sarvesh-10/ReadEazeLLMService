@@ -116,6 +116,7 @@ def process_job(job_data: dict):
         logger.info(f"Fetched PDF for book_id={book_id} to {pdf_file}")
         update_job_status(job_id, "IN_PROGRESS")
         job_data["status"] = "IN_PROGRESS"
+        redis_client.rpush(OUTPUT_JOB_QUEUE, json.dumps(job_data))
 
         # Load PDF
         loader = PyPDFLoader(pdf_file)
