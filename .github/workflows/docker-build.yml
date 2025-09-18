@@ -37,4 +37,4 @@ jobs:
           context: .
           push: true
           target: worker
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-worker:${{ github.ref_name == 'master' && 'worker-latest' || format('worker-{0}', github.ref_name) }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-images:${{ github.ref_name == 'master' && 'worker-latest' || format('worker-{0}', github.ref_name) }}
