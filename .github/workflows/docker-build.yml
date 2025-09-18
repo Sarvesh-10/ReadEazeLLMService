@@ -29,7 +29,7 @@ jobs:
           context: .
           push: true
           target: fastapi
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-fastapi:${{ github.ref_name == 'master' && 'latest' || format('staging-{0}', github.ref_name) }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-images:${{ github.ref_name == 'master' && 'llm-latest' || format('llm-{0}', github.ref_name) }}
 
       - name: Build and push Worker image
         uses: docker/build-push-action@v5
@@ -37,4 +37,4 @@ jobs:
           context: .
           push: true
           target: worker
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-worker:${{ github.ref_name == 'master' && 'latest' || format('staging-{0}', github.ref_name) }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/readeaze-worker:${{ github.ref_name == 'master' && 'worker-latest' || format('worker-{0}', github.ref_name) }}
