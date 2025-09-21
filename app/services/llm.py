@@ -39,8 +39,9 @@ def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3)
     try:
         # Get embeddings for the query
         response = httpx.post(API_URL, json={"texts": [query]})
-        response.raise_for_status()
         query_embedding = response.json()['embedding'][0]
+
+        logger.info(f"Query embedding: {query_embedding}")
 
         # Initialize Qdrant client
 
@@ -70,10 +71,13 @@ def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3)
         # Extract and return the relevant text chunks
         context_chunks = []
         for point in search_result:
+            logger.info(f"Point ID: {point.id}, Score: {point.score}")
             payload = point.payload
             # Try 'text', fallback to 'chunk' for compatibility
             if payload:
+                logger.info(f"Payload: {payload}")
                 if 'text' in payload:
+                    logger.info(f"Text: {payload['text']}")
                     context_chunks.append(payload['text'])
                 elif 'chunk' in payload:
                     context_chunks.append(payload['chunk'])
