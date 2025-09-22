@@ -62,7 +62,7 @@ def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3)
                 ),
             ]
         )
-        resp = requests.post("http://localhost:6333/collections/books_collection/points/search", json={
+        resp = requests.post("http://qdrant:6333/collections/books_collection/points/search", json={
     "vector": query_embedding,
     "limit": top_k,
     "with_payload": True,
