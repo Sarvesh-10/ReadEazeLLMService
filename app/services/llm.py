@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage
 from qdrant_client import QdrantClient
+import requests
 from .memory import get_chat_memory
 from ..utils import format_message
 # from dotenv import load_dotenv
@@ -38,8 +39,11 @@ client = QdrantClient(QDRANT_URL)
 def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3):
     try:
         # Get embeddings for the query
-        response = httpx.post(API_URL, json={"texts": [query]})
-        query_embedding = response.json()['embedding'][0]
+        payload = {
+            "texts": [query]
+        }
+        res = requests.post(API_URL, json=payload)
+        query_embedding = res.json()['embedding'][0]
 
         logger.info(f"Query embedding: {query_embedding}")
 
