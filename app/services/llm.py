@@ -47,43 +47,40 @@ def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3)
 
         logger.info(f"Query embedding: {query_embedding}")
 
-        # Initialize Qdrant client
+        # Ensure correct types for filtering (int or str as indexed)
+        # If you indexed as int, cast to int; if as str, cast to str
+        try:
+            book_id_val = int(book_id)
+        except Exception:
+            book_id_val = book_id
+        try:
+            user_id_val = int(user_id)
+        except Exception:
+            user_id_val = user_id
 
         # Build filter for user_id and book_id
-        qdrant_filter = qdrant_models.Filter(
-            must=[
-                qdrant_models.FieldCondition(
-                    key="user_id",
-                    match=qdrant_models.MatchValue(value=user_id)
-                ),
-                qdrant_models.FieldCondition(
-                    key="book_id",
-                    match=qdrant_models.MatchValue(value=book_id)
-                ),
-            ]
-        )
+        filter_must = [
+            {"key": "book_id", "match": {"value": book_id_val}},
+            {"key": "user_id", "match": {"value": user_id_val}}
+        ]
+
         resp = requests.post("http://qdrant:6333/collections/books_collection/points/search", json={
-    "vector": query_embedding,
-    "limit": top_k,
-    "with_payload": True,
-    "filter": {"must": [
-        {"key": "user_id", "match": {"value": user_id}},
-        {"key": "book_id", "match": {"value": book_id}}
-    ]}
-})
-        logger.info("qdrant response ",resp.json()['result'][0]['payload']['text'])
+            "vector": query_embedding,
+            "limit": top_k,
+            "with_payload": True,
+            "filter": {"must": filter_must}
+        })
 
-
-
-        # Perform similarity search with filter
-        search_result = resp.json()['result']
-        logger.info(f"Qdrant search results: {search_result}")
+        result = resp.json().get('result', [])
+        if result:
+            logger.info("qdrant response: %s", result[0]['payload'].get('text', 'No text key'))
+        else:
+            logger.info("qdrant response: No results found.")
 
         # Extract and return the relevant text chunks
         context_chunks = []
-        for point in search_result:
-            logger.info(f"Point ID: {point.id}, Score: {point.score}")
-            payload = point.payload
+        for point in result:
+            payload = point.get('payload', {})
             # Try 'text', fallback to 'chunk' for compatibility
             if payload:
                 logger.info(f"Payload: {payload}")
