@@ -62,15 +62,21 @@ def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3)
                 ),
             ]
         )
+        resp = requests.post("http://localhost:6333/collections/books_collection/points/search", json={
+    "vector": query_embedding,
+    "limit": top_k,
+    "with_payload": True,
+    "filter": {"must": [
+        {"key": "user_id", "match": {"value": user_id}},
+        {"key": "book_id", "match": {"value": book_id}}
+    ]}
+})
+        logger.info("qdrant response ",resp.json()['result'][0]['payload']['text'])
+
+
 
         # Perform similarity search with filter
-        search_result = client.search(
-            collection_name=QDRANT_COLLECTION,
-            query_vector=query_embedding,
-            limit=top_k,
-            with_payload=True,
-            query_filter=qdrant_filter
-        )
+        search_result = resp.json()['result']
         logger.info(f"Qdrant search results: {search_result}")
 
         # Extract and return the relevant text chunks
