@@ -71,6 +71,7 @@ def getContextFromQdrant(query: str, user_id: str, book_id: str, top_k: int = 3)
             with_payload=True,
             query_filter=qdrant_filter
         )
+        logger.info(f"Qdrant search results: {search_result}")
 
         # Extract and return the relevant text chunks
         context_chunks = []
